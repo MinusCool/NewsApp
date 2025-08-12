@@ -1,5 +1,5 @@
 from typing import Dict, Any
-import requests
+from requests import Session, RequestException
 from fastapi import HTTPException
 from core.config import settings
 
@@ -11,14 +11,14 @@ class NewsAPIClient:
         self.api_key = api_key
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
-        self.session = requests.Session()
+        self.session = Session()
         self.session.headers.update({"X-Api-Key": self.api_key})
 
     def _get(self, path: str, params: Dict[str, Any]) -> Dict[str, Any]:
         url = f"{self.base_url}/{path.lstrip('/')}"
         try:
             resp = self.session.get(url, params=params, timeout=self.timeout)
-        except requests.RequestException as e:
+        except RequestException as e:
             raise HTTPException(status_code=502, detail=f"Upstream connection error: {e}")
 
         if resp.status_code != 200:

@@ -1,5 +1,5 @@
 from typing import List, Optional, Dict, Any
-from db.database import get_connection
+from database.dtb import get_connection
 import sqlite3
 
 class BookmarkRepository:

@@ -1,22 +1,22 @@
+import os
+import sys
 import sqlite3
-from pathlib import Path
 
-DB_DIR = Path(__file__).resolve().parent
-DB_DIR.mkdir(parents=True, exist_ok=True)
-DB_PATH = DB_DIR / "news_app.db"
+def resource_path(relative_path):
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
 
 def get_connection():
-    conn = sqlite3.connect(DB_PATH)
+    db_path = resource_path("database/data/newsApp.db")
+    conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON;")
     return conn
 
 def init_db():
-    print(f"[SQLite] Using DB at: {DB_PATH}")
     conn = get_connection()
-    cur = conn.cursor()
-
-    cur.executescript("""
+    cursor = conn.cursor()
+    cursor.executescript("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL,
@@ -35,9 +35,10 @@ def init_db():
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         );
     """)
+
     try:
-        cur.execute("INSERT INTO users (username, password) VALUES (?, ?)", ("admin", "admin123"))
-        cur.execute("INSERT INTO users (username, password) VALUES (?, ?)", ("user", "user123"))
+        cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", ("admin", "admin123"))
+        cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", ("user", "user123"))
     except sqlite3.IntegrityError:
         pass
 
