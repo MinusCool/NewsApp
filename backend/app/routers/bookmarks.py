@@ -1,33 +1,27 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
 from models.schemas import BookmarkIn, BookmarkOut
-from repositories.bookmarkRepo import BookmarkRepository
-from repositories.userRepo import UserRepository
+from dependencies import get_current_user
+from repositories.bookmarkRepo import BookmarkRepo
 
 router = APIRouter(prefix="/bookmarks", tags=["bookmarks"])
-_bookmarks = BookmarkRepository()
-_users = UserRepository()
+repo = BookmarkRepo()
 
-def _ensure_user(user_id: int):
-    if not _users.get_user_by_id(user_id):
-        raise HTTPException(status_code=404, detail="User not found")
+@router.get("", response_model=List[BookmarkOut])
+def list_bookmarks(current=Depends(get_current_user)):
+    rows = repo.list(current["id"])
+    return rows
 
-@router.get("/", response_model=List[BookmarkOut])
-def list_bookmarks(user_id: int = Query(..., ge=1)):
-    _ensure_user(user_id)
-    return _bookmarks.list_by_user(user_id)
+@router.post("", status_code=201)
+def add_bookmark(data: BookmarkIn, current=Depends(get_current_user)):
+    bid = repo.add(current["id"], data.model_dump())
+    if bid == 0:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Bookmark already exists")
+    return {"id": bid}
 
-@router.post("/", response_model=BookmarkOut)
-def add_bookmark(payload: BookmarkIn, user_id: int = Query(..., ge=1)):
-    _ensure_user(user_id)
-    try:
-        new_id = _bookmarks.add(user_id, payload.dict())
-        return BookmarkOut(id=new_id, **payload.dict())
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-@router.delete("/{bookmark_id}")
-def delete_bookmark(bookmark_id: int, user_id: int = Query(..., ge=1)):
-    _ensure_user(user_id)
-    _bookmarks.remove(user_id, bookmark_id)
-    return {"message": "Bookmark removed"}
+@router.delete("/{bookmark_id}", status_code=204)
+def delete_bookmark(bookmark_id: int, current=Depends(get_current_user)):
+    n = repo.delete(current["id"], bookmark_id)
+    if n == 0:
+        raise HTTPException(status_code=404, detail="Not found")
+    return

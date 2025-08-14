@@ -1,22 +1,38 @@
-from fastapi import APIRouter, Depends
-from models.schemas import TopHeadlinesQuery, EverythingQuery, SourcesQuery, NewsResponse
-from services.api import NewsAPIClient, NewsService
-from core.config import settings
+from fastapi import APIRouter, Query
+from typing import Optional, Literal
+from models.schemas import PagedArticles, HomeResponse
+from services.api import NewsAPI
 
 router = APIRouter(prefix="/news", tags=["news"])
+svc = NewsAPI()
 
-def get_service() -> NewsService:
-    client = NewsAPIClient(api_key=settings.NEWSAPI_KEY)
-    return NewsService(client)
+@router.get("/search", response_model=PagedArticles)
+def search(
+    q: str,
+    sources: Optional[str] = None,
+    language: Optional[str] = None,
+    from_: Optional[str] = Query(None, alias="from"),
+    to: Optional[str] = None,
+    sort: Literal["relevancy","popularity","publishedAt"] = "publishedAt",
+    page: int = 1,
+    page_size: int = 20,
+):
+    return svc.search(q=q, sources=sources, language=language, from_=from_, to=to, sort=sort, page=page, page_size=page_size)
 
-@router.get("/top-headlines", response_model=NewsResponse)
-def top_headlines(params: TopHeadlinesQuery = Depends(), svc: NewsService = Depends(get_service)):
-    return svc.top_headlines(params.dict(by_alias=True))
+@router.get("/top", response_model=PagedArticles)
+def top(
+    country: Optional[str] = "id",
+    category: Optional[str] = None,
+    sources: Optional[str] = None,
+    page: int = 1,
+    page_size: int = 20,
+):
+    return svc.top(country=country, category=category, sources=sources, page=page, page_size=page_size)
 
-@router.get("/everything", response_model=NewsResponse)
-def everything(params: EverythingQuery = Depends(), svc: NewsService = Depends(get_service)):
-    return svc.everything(params.dict(by_alias=True))
+@router.get("/home", response_model=HomeResponse)
+def home():
+    return {"sections": svc.home_sections()}
 
-@router.get("/sources", response_model=NewsResponse)
-def sources(params: SourcesQuery = Depends(), svc: NewsService = Depends(get_service)):
-    return svc.sources(params.dict(by_alias=True))
+@router.get("/sources")
+def sources(category: Optional[str] = None, language: Optional[str] = None, country: Optional[str] = None):
+    return svc.sources(category=category, language=language, country=country)

@@ -1,14 +1,15 @@
 import os
-from dotenv import load_dotenv
-from dataclasses import dataclass
+from pydantic_settings import BaseSettings
+from pydantic import Field
 
-load_dotenv()
-
-@dataclass(frozen=True)
-class Settings:
-    NEWSAPI_BASE_URL: str = os.getenv("NEWS_URL", "")
+class Settings(BaseSettings):
+    NEWSAPI_BASE_URL: str = os.getenv("NEWS_BASE_URL", "")
     NEWSAPI_KEY: str = os.getenv("NEWSAPI_KEY", "")
+    JWT_SECRET: str = Field(default="change-me")
+    HTTP_TIMEOUT: int = os.getenv("HTTP_TIMEOUT", 15)
+    ALLOWED_ORIGINS: str = os.getenv("ALLOWED_ORIGINS", "")
 
-    HTTP_TIMEOUT: int = 15
+    model_config = {"env_file": ".env", "extra": "ignore"}
 
 settings = Settings()
+

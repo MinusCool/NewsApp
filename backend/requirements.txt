@@ -1,5 +1,8 @@
-fastapi>=0.110,<1.0
-pydantic>=2.0,<3.0
-uvicorn[standard]>=0.20,<1.0
-httpx>=0.24,<1
-requests
+fastapi>=0.110,<1
+uvicorn[standard]>=0.27,<1
+pydantic>=2.6,<3
+pydantic-settings>=2.2,<3
+python-dotenv>=1.0,<2
+requests>=2.31,<3
+passlib[bcrypt]>=1.7,<2
+PyJWT>=2.8,<3

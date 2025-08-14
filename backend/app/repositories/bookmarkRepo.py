@@ -1,48 +1,46 @@
-from typing import List, Optional, Dict, Any
 from database.dtb import get_connection
-import sqlite3
+from typing import List, Dict
 
-class BookmarkRepository:
-    def list_by_user(self, user_id: int) -> List[dict]:
+class BookmarkRepo:
+    def list(self, user_id: int) -> List[Dict]:
         conn = get_connection()
         cur = conn.cursor()
         cur.execute(
-            "SELECT id, title, url, source, published_at, description, image_url FROM bookmarks WHERE user_id=? ORDER BY id DESC",
+            "SELECT id,title,url,source,published_at,description,image_url FROM bookmarks WHERE user_id=? ORDER BY id DESC",
             (user_id,),
         )
-        rows = cur.fetchall()
+        rows = [dict(r) for r in cur.fetchall()]
         conn.close()
-        return [dict(r) for r in rows]
+        return rows
 
-    def add(self, user_id: int, data: Dict[str, Any]) -> int:
+    def add(self, user_id: int, data: Dict) -> int:
         conn = get_connection()
         cur = conn.cursor()
-        try:
-            cur.execute(
-                """
-                INSERT INTO bookmarks (user_id, title, url, source, published_at, description, image_url)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    user_id,
-                    data.get("title"),
-                    data.get("url"),
-                    data.get("source"),
-                    data.get("published_at"),
-                    data.get("description"),
-                    data.get("image_url"),
-                ),
-            )
-            conn.commit()
-            return cur.lastrowid
-        except sqlite3.IntegrityError:
-            raise ValueError("Bookmark already exists")
-        finally:
-            conn.close()
+        cur.execute(
+            """
+            INSERT OR IGNORE INTO bookmarks (user_id,title,url,source,published_at,description,image_url)
+            VALUES (?,?,?,?,?,?,?)
+            """,
+            (
+                user_id,
+                data.get("title"),
+                data.get("url"),
+                data.get("source"),
+                data.get("published_at"),
+                data.get("description"),
+                data.get("image_url"),
+            ),
+        )
+        conn.commit()
+        bid = cur.lastrowid
+        conn.close()
+        return bid
 
-    def remove(self, user_id: int, bookmark_id: int) -> None:
+    def delete(self, user_id: int, bookmark_id: int) -> int:
         conn = get_connection()
         cur = conn.cursor()
         cur.execute("DELETE FROM bookmarks WHERE id=? AND user_id=?", (bookmark_id, user_id))
+        changes = cur.rowcount
         conn.commit()
         conn.close()
+        return changes
